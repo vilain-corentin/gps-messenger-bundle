@@ -19,6 +19,9 @@ use Symfony\Component\Messenger\Transport\Serialization\SerializerInterface;
  */
 final class GpsSender implements SenderInterface
 {
+    private const BODY = 'body';
+    private const HEADERS = 'headers';
+
     private PubSubClient $pubSubClient;
     private GpsConfigurationInterface $gpsConfiguration;
     private SerializerInterface $serializer;
@@ -40,9 +43,21 @@ final class GpsSender implements SenderInterface
     {
         $encodedMessage = $this->serializer->encode($envelope);
 
+        $message = $encodedMessage[self::BODY];
+
+        if(array_key_exists(self::HEADERS, $encodedMessage)){
+            $attributes = $encodedMessage[self::HEADERS];
+        }
+
+        $attributesStamp = $envelope->last(AttributesStamp::class);
+        if ($attributesStamp instanceof AttributesStamp)
+        {
+            $attributes = array_merge($attributes, $attributesStamp->getAttributes());
+        }
+
         $messageBuilder = new MessageBuilder();
         try {
-            $messageBuilder = $messageBuilder->setData(json_encode($encodedMessage, JSON_THROW_ON_ERROR));
+            $messageBuilder = $messageBuilder->setData($message);
         } catch (\JsonException $exception) {
             throw new TransportException($exception->getMessage(), 0, $exception);
         }
@@ -58,9 +73,8 @@ final class GpsSender implements SenderInterface
             $messageBuilder = $messageBuilder->setOrderingKey($orderingKeyStamp->getOrderingKey());
         }
 
-        $attributesStamp = $envelope->last(AttributesStamp::class);
-        if ($attributesStamp instanceof AttributesStamp) {
-            $messageBuilder = $messageBuilder->setAttributes($attributesStamp->getAttributes());
+        if ($attributes){
+            $messageBuilder = $messageBuilder->setAttributes($attributes);
         }
 
         $this->pubSubClient
