@@ -21,6 +21,9 @@ use Throwable;
  */
 final class GpsReceiver implements ReceiverInterface
 {
+    private const BODY = 'body';
+    private const HEADERS = 'headers';
+
     private PubSubClient $pubSubClient;
     private GpsConfigurationInterface $gpsConfiguration;
     private SerializerInterface $serializer;
@@ -110,12 +113,15 @@ final class GpsReceiver implements ReceiverInterface
      */
     private function createEnvelopeFromPubSubMessage(Message $message): Envelope
     {
+        $encodedMessage[self::BODY] = $message->data();
+        $encodedMessage[self::HEADERS] = $message->attributes();
+
         try {
-            $rawData = json_decode($message->data(), true, 512, JSON_THROW_ON_ERROR);
+            $envelope = $this->serializer->decode($encodedMessage);
         } catch (JsonException $exception) {
             throw new MessageDecodingFailedException($exception->getMessage(), 0, $exception);
         }
 
-        return $this->serializer->decode($rawData)->with(new GpsReceivedStamp($message));
+        return $envelope->with(new GpsReceivedStamp($message));
     }
 }
