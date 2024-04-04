@@ -184,4 +184,24 @@ class GpsSenderTest extends TestCase
 
         self::assertSame($envelope, $this->gpsSender->send($envelope));
     }
+
+    public function testItDoesPublishIfNoHeader(): void
+    {
+        $envelope = EnvelopeFactory::create();
+        $envelopeArray = ['body' => []];
+
+        $this->serializerMock
+            ->expects($this->once())
+            ->method('encode')
+            ->with($envelope)
+            ->willReturn($envelopeArray)
+        ;
+
+        $this->pubSubClientMock
+            ->expects($this->never())
+            ->method('topic')
+        ;
+
+        self::assertSame($envelope, $this->gpsSender->send($envelope));
+    }
 }
