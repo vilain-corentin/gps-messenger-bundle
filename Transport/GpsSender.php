@@ -44,6 +44,7 @@ final class GpsSender implements SenderInterface
         $encodedMessage = $this->serializer->encode($envelope);
 
         $message = $encodedMessage[self::BODY];
+        $attributes = null;
 
         if(array_key_exists(self::HEADERS, $encodedMessage)){
             $attributes = $encodedMessage[self::HEADERS];
@@ -73,7 +74,7 @@ final class GpsSender implements SenderInterface
             $messageBuilder = $messageBuilder->setOrderingKey($orderingKeyStamp->getOrderingKey());
         }
 
-        if ($attributes){
+        if ($attributes !== null){
             $messageBuilder = $messageBuilder->setAttributes($attributes);
         }
 
